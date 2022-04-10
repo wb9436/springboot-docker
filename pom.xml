@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.5.12</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.ivan</groupId>
+    <artifactId>springboot-docker</artifactId>
+    <version>1.0.1</version>
+    <name>springboot-docker</name>
+    <description>springboot-docker</description>
+    <properties>
+        <java.version>1.8</java.version>
+
+        <docker.host>http://192.168.152.50:2375</docker.host>
+        <docker.registry.repository>192.168.152.50:5000</docker.registry.repository>
+        <docker.maven.plugin.version>1.0.0</docker.maven.plugin.version>
+        <dockerfile.maven.version>1.3.7</dockerfile.maven.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>${docker.maven.plugin.version}</version>
+                <executions>
+                    <!--- 当执行mvn package时,执行: mvn clean package docker:build -->
+                    <execution>
+                        <id>build-image</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>push</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!--镜像名称  192.168.152.50:5000/springboot-docker -->
+                    <imageName>${docker.registry.repository}/${project.artifactId}</imageName>
+                    <!--指定标签：latest-->
+                    <imageTags>
+                        <imageTag>latest</imageTag>
+                    </imageTags>
+                    <!--指定远程 docker api 地址 -->
+                    <dockerHost>${docker.host}</dockerHost>
+                    <!--基础镜像jdk 1.8-->
+                    <baseImage>java:8</baseImage>
+                    <!--切换到/ROOT目录-->
+                    <workdir>/ROOT</workdir>
+                    <cmd>["java","-version"]</cmd>
+                    <!--定义匿名数据卷-->
+                    <volume>/logs</volume>
+
+                    <entryPoint>["java", "-jar","-Dspring.profiles.active=prod","${project.build.finalName}.jar"]</entryPoint>
+                    <!--这里是复制jar包到docker容器指定目录配置 -->
+                    <resources>
+                        <resource>
+                            <targetPath>/ROOT</targetPath>
+                            <!--用于指定需要复制的根目录,${project.build.directory}表示target目录 -->
+                            <directory>${project.build.directory}</directory>
+                            <!--用于指定需要复制的文件,${project.build.finalName}.jar<指的是打包后的jar包文件 -->
+                            <include>${project.build.finalName}.jar</include>
+                        </resource>
+                    </resources>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+
+</project>
